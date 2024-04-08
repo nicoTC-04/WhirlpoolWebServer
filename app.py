@@ -4,6 +4,7 @@ from flask_uploads import UploadSet, configure_uploads, IMAGES
 from sqlalchemy import func, extract, text
 from datetime import datetime
 from werkzeug.utils import secure_filename
+import os
 
 """
 CONFIG
@@ -13,7 +14,7 @@ app = Flask(__name__)
 # config SQL
 app.config['SQLALCHEMY_DATABASE_URI'] = "mssql+pyodbc://sqlserver:5'zfx~HU`;jD\"RY}@34.82.132.197/poolpoolgo?driver=ODBC+Driver+17+for+SQL+Server"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOADED_PHOTOS_DEST'] = './imagenes'
+app.config['UPLOADED_PHOTOS_DEST'] = './../imagenes'
 photos = UploadSet('photos', IMAGES)
 configure_uploads(app, photos)
 
@@ -116,14 +117,20 @@ def get_user_info():
 def agregar_reporte():
     descripcion = request.form['descripcion']
     id_empleado_genera = request.form['id_empleado_genera']
-    # Suponiendo que el cliente envía la ID de ubicación y producto, si es aplicable
     id_ubicacion = request.form.get('id_ubicacion', None)
 
     if 'foto' in request.files:
         foto = request.files['foto']
-        filename = secure_filename(foto.filename)
-        foto.save(os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename))
-        ruta_imagen = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename)
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        _, ext = os.path.splitext(foto.filename)
+        # Asegúrate de que la extensión extraída comienza con un punto, si no, agregarlo
+        if not ext.startswith('.'):
+            ext = f'.{ext}'
+        
+        filename = f"{id_empleado_genera}_{timestamp}{ext}"
+        foto_path = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename)
+        foto.save(foto_path)
+        ruta_imagen = foto_path
     else:
         ruta_imagen = None
 
