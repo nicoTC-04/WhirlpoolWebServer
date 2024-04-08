@@ -118,6 +118,9 @@ def agregar_reporte():
     descripcion = request.form['descripcion']
     id_empleado_genera = request.form['id_empleado_genera']
     id_ubicacion = request.form.get('id_ubicacion', None)
+    
+    print("info reporte:")
+    print(descripcion, id_empleado_genera, id_ubicacion)
 
     if 'foto' in request.files:
         foto = request.files['foto']
@@ -131,6 +134,9 @@ def agregar_reporte():
         foto_path = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename)
         foto.save(foto_path)
         ruta_imagen = foto_path
+        
+        print("ruta imagen: ")
+        print(ruta_imagen)
     else:
         ruta_imagen = None
 
@@ -139,6 +145,7 @@ def agregar_reporte():
         ruta_imagen=ruta_imagen,
         id_empleado_genera=id_empleado_genera,
         id_ubicacion=id_ubicacion,
+        fecha_generacion=datetime.now(),
     )
 
     db.session.add(nuevo_reporte)
