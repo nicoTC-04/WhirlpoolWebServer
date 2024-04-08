@@ -123,12 +123,15 @@ def agregar_reporte():
     print(descripcion, id_empleado_genera, id_ubicacion)
 
     if 'foto' in request.files:
+        print("foto encontrada")
         foto = request.files['foto']
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         _, ext = os.path.splitext(foto.filename)
         # Asegúrate de que la extensión extraída comienza con un punto, si no, agregarlo
         if not ext.startswith('.'):
             ext = f'.{ext}'
+            
+        print("ext: ", ext)
         
         filename = f"{id_empleado_genera}_{timestamp}{ext}"
         foto_path = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename)
