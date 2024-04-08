@@ -48,6 +48,8 @@ class Reporte(db.Model):
     puntos = db.Column(db.Integer)
     fecha_generacion = db.Column(db.DateTime)
     id_empleado_genera = db.Column(db.Integer, db.ForeignKey('empleado.id_empleado'))
+    solucionado = db.Column(db.Boolean, default=False)
+    id_ubicacion = db.Column(db.Integer, db.ForeignKey('ubicacion.id_ubicacion'))
     
 class Ubicacion(db.Model):
     id_ubicacion = db.Column(db.Integer, primary_key=True)
