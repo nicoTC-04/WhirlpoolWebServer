@@ -58,6 +58,7 @@ class Ubicacion(db.Model):
     latitud = db.Column(db.Float)
     longitud = db.Column(db.Float)
     descripcion = db.Column(db.String(100))
+    imageName = db.Column(db.String(100))
 
 
 
@@ -92,7 +93,7 @@ def get_user_info():
         
         locations = Ubicacion.query.all()
         all_locations = [
-            {'id_ubicacion': loc.id_ubicacion, 'nombre': loc.nombre, 'latitud': loc.latitud, 'longitud': loc.longitud, 'descripcion': loc.descripcion}
+            {'id_ubicacion': loc.id_ubicacion, 'nombre': loc.nombre, 'latitud': loc.latitud, 'longitud': loc.longitud, 'descripcion': loc.descripcion, 'imageName': loc.imageName}
             for loc in locations
         ]
 
