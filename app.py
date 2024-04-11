@@ -113,6 +113,45 @@ def get_user_info():
         return jsonify({'message': 'Email parameter is missing'}), 400
     
 
+@app.route('/users', methods=['GET'])
+def get_users():
+    # Consulta que obtiene los empleados junto con la suma de puntos y el conteo de reportes generados por cada uno
+    users_info = db.session.query(
+        Empleado.id_empleado.label("uid"),
+        Empleado.nombre.label("fullName"),
+        Empleado.correo.label("email"),
+        Empleado.rol_id,
+        func.coalesce(func.sum(Reporte.puntos), 0).label("points"),
+        func.count(Reporte.id_reporte).label("reports")
+    ).outerjoin(Reporte, Empleado.id_empleado == Reporte.id_empleado_genera) \
+     .group_by(Empleado.id_empleado) \
+     .all()
+
+    # Convertir la información obtenida en el formato JSON especificado
+    users_list = []
+    for user in users_info:
+        user_dict = {
+            "uid": user.uid,
+            "fullName": user.fullName,
+            "email": user.email,
+            "rol_id": user.rol_id,
+            "points": user.points,
+            "reports": user.reports
+        }
+        # Dividir fullName en firstName y lastName si es necesario
+        names = user_dict["fullName"].split(' ', 1)
+        user_dict["firstName"] = names[0]
+        if len(names) > 1:
+            user_dict["lastName"] = names[1]
+        else:
+            user_dict["lastName"] = ""  # O asignar un valor por defecto si no hay apellido
+
+        users_list.append(user_dict)
+
+    return jsonify(users_list)
+
+
+
 ### Endpoint que recibe un reporte y lo agrega a la base de datos
 @app.route('/reporte', methods=['POST'])
 def agregar_reporte():
