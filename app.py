@@ -115,40 +115,36 @@ def get_user_info():
 
 @app.route('/users', methods=['GET'])
 def get_users():
-    # Consulta que obtiene los empleados junto con la suma de puntos y el conteo de reportes generados por cada uno
+    # Subconsulta para obtener puntos y conteo de reportes por empleado
+    subquery = db.session.query(
+        Reporte.id_empleado_genera.label("id_empleado"),
+        func.coalesce(func.sum(Reporte.puntos), 0).label("points"),
+        func.count(Reporte.id_reporte).label("reports")
+    ).group_by(Reporte.id_empleado_genera).subquery()
+
+    # Consulta principal que une la subconsulta con los empleados para obtener toda la información necesaria
     users_info = db.session.query(
         Empleado.id_empleado.label("uid"),
         Empleado.nombre.label("fullName"),
         Empleado.correo.label("email"),
         Empleado.rol_id,
-        func.coalesce(func.sum(Reporte.puntos), 0).label("points"),
-        func.count(Reporte.id_reporte).label("reports")
-    ).outerjoin(Reporte, Empleado.id_empleado == Reporte.id_empleado_genera) \
-     .group_by(Empleado.id_empleado) \
-     .all()
+        subquery.c.points,
+        subquery.c.reports
+    ).outerjoin(subquery, Empleado.id_empleado == subquery.c.id_empleado).all()
 
-    # Convertir la información obtenida en el formato JSON especificado
-    users_list = []
-    for user in users_info:
-        user_dict = {
-            "uid": user.uid,
-            "fullName": user.fullName,
-            "email": user.email,
-            "rol_id": user.rol_id,
-            "points": user.points,
-            "reports": user.reports
-        }
-        # Dividir fullName en firstName y lastName si es necesario
-        names = user_dict["fullName"].split(' ', 1)
-        user_dict["firstName"] = names[0]
-        if len(names) > 1:
-            user_dict["lastName"] = names[1]
-        else:
-            user_dict["lastName"] = ""  # O asignar un valor por defecto si no hay apellido
-
-        users_list.append(user_dict)
+    # Crear la lista de usuarios en el formato deseado
+    users_list = [{
+        "uid": user.uid,
+        "firstName": user.fullName.split(' ', 1)[0],
+        "lastName": user.fullName.split(' ', 1)[1] if len(user.fullName.split(' ', 1)) > 1 else "",
+        "email": user.email,
+        "rol_id": user.rol_id,
+        "points": user.points,
+        "reports": user.reports
+    } for user in users_info]
 
     return jsonify(users_list)
+
 
 
 
