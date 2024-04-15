@@ -146,7 +146,60 @@ def get_users():
     return jsonify(users_list)
 
 
+## endpoint que regresa todos los reportes pendientes (solo regresa nombre de empleado, nombre ubicacion, descripcion y fecha generacion)
+@app.route('/reportes', methods=['GET'])
+def get_reportes():
+    # Subconsulta para obtener información de los empleados y ubicaciones
+    subquery_empleados = db.session.query(
+        Empleado.id_empleado.label("id_empleado"),
+        Empleado.nombre.label("nombre_empleado")
+    ).subquery()
 
+    subquery_ubicaciones = db.session.query(
+        Ubicacion.id_ubicacion.label("id_ubicacion"),
+        Ubicacion.nombre.label("nombre_ubicacion")
+    ).subquery()
+
+    # Consulta principal que une la subconsulta con los reportes para obtener toda la información necesaria
+    reportes_info = db.session.query(
+        Reporte.id_reporte.label("id_reporte"),
+        Reporte.descripcion,
+        Reporte.fecha_generacion,
+        subquery_empleados.c.nombre_empleado,
+        subquery_ubicaciones.c.nombre_ubicacion
+    ).join(subquery_empleados, Reporte.id_empleado_genera == subquery_empleados.c.id_empleado).join(subquery_ubicaciones, Reporte.id_ubicacion == subquery_ubicaciones.c.id_ubicacion).filter(Reporte.solucionado == False).all()
+
+    # Crear la lista de reportes en el formato deseado
+    reportes_list = [{
+        "id_reporte": reporte.id_reporte,
+        "descripcion": reporte.descripcion,
+        "fecha_generacion": reporte.fecha_generacion.strftime("%Y-%m-%d %H:%M:%S"),
+        "nombre_empleado": reporte.nombre_empleado,
+        "nombre_ubicacion": reporte.nombre_ubicacion
+    } for reporte in reportes_info]
+
+    return jsonify(reportes_list)
+
+## endpoint que regresa toda la info detallada de un reporte (incluida la imagen) a partir de su id
+@app.route('/reporte/<int:id_reporte>', methods=['GET'])
+def get_reporte(id_reporte):
+    reporte = Reporte.query.filter_by(id_reporte=id_reporte).first()
+
+    if not reporte:
+        return jsonify({'message': 'No se encontro el reporte'}), 404
+
+    reporte_info = {
+        'id_reporte': reporte.id_reporte,
+        'descripcion': reporte.descripcion,
+        'ruta_imagen': reporte.ruta_imagen,
+        'puntos': reporte.puntos,
+        'fecha_generacion': reporte.fecha_generacion.strftime("%Y-%m-%d %H:%M:%S"),
+        'id_empleado_genera': reporte.id_empleado_genera,
+        'solucionado': reporte.solucionado,
+        'id_ubicacion': reporte.id_ubicacion
+    }
+
+    return jsonify(reporte_info)
 
 ### Endpoint que recibe un reporte y lo agrega a la base de datos
 @app.route('/reporte', methods=['POST'])
