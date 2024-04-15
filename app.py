@@ -139,8 +139,8 @@ def get_users():
         "lastName": user.fullName.split(' ', 1)[1] if len(user.fullName.split(' ', 1)) > 1 else "",
         "email": user.email,
         "rol_id": user.rol_id,
-        "points": user.points,
-        "reports": user.reports
+        "points": user.points if user.points is not None else 0,
+        "reports": user.reports if user.reports is not None else 0
     } for user in users_info]
 
     return jsonify(users_list)
