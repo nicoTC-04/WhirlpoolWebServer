@@ -1,10 +1,11 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_uploads import UploadSet, configure_uploads, IMAGES
 from sqlalchemy import func, extract, text
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import os
+import magic
 
 """
 CONFIG
@@ -180,26 +181,6 @@ def get_reportes():
 
     return jsonify(reportes_list)
 
-## endpoint que regresa toda la info detallada de un reporte (incluida la imagen) a partir de su id
-@app.route('/reporte/<int:id_reporte>', methods=['GET'])
-def get_reporte(id_reporte):
-    reporte = Reporte.query.filter_by(id_reporte=id_reporte).first()
-
-    if not reporte:
-        return jsonify({'message': 'No se encontro el reporte'}), 404
-
-    reporte_info = {
-        'id_reporte': reporte.id_reporte,
-        'descripcion': reporte.descripcion,
-        'ruta_imagen': reporte.ruta_imagen,
-        'puntos': reporte.puntos,
-        'fecha_generacion': reporte.fecha_generacion.strftime("%Y-%m-%d %H:%M:%S"),
-        'id_empleado_genera': reporte.id_empleado_genera,
-        'solucionado': reporte.solucionado,
-        'id_ubicacion': reporte.id_ubicacion
-    }
-
-    return jsonify(reporte_info)
 
 ### Endpoint que recibe un reporte y lo agrega a la base de datos
 @app.route('/reporte', methods=['POST'])
@@ -245,6 +226,38 @@ def agregar_reporte():
 
     return jsonify({'mensaje': 'Reporte agregado exitosamente'}), 201
 
+
+
+
+## endpoints para detalles de reporte
+@app.route('/reporte/<int:reporte_id>', methods=['GET'])
+def get_reporte(reporte_id):
+    # Buscar el reporte en la base de datos usando el ID proporcionado
+    reporte = Reporte.query.get(reporte_id)
+    if not reporte:
+        return jsonify({'mensaje': 'Reporte no encontrado'}), 404
+    
+    # Crear la respuesta con los detalles del reporte
+    reporte_detalle = {
+        'id_reporte': reporte.id_reporte,
+        'descripcion': reporte.descripcion,
+        'fecha_generacion': reporte.fecha_generacion.strftime("%Y-%m-%d %H:%M:%S"),
+        'solucionado': reporte.solucionado,
+        'puntos': reporte.puntos,
+        'ruta_imagen': request.host_url + 'imagen/' + str(reporte.id_reporte)
+    }
+    return jsonify(reporte_detalle)
+
+@app.route('/imagen/<int:reporte_id>')
+def get_imagen_reporte(reporte_id):
+    reporte = Reporte.query.get(reporte_id)
+    if not reporte or not reporte.ruta_imagen:
+        return jsonify({'mensaje': 'Imagen no encontrada'}), 404
+    
+    mime = magic.Magic(mime=True)
+    content_type = mime.from_file(reporte.ruta_imagen)
+
+    return send_file(reporte.ruta_imagen, mimetype=content_type)
 
 
 if __name__ == '__main__':
