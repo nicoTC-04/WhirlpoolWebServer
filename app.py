@@ -261,6 +261,34 @@ def get_imagen_reporte(reporte_id):
 
     return send_file(reporte.ruta_imagen, mimetype=content_type)
 
+# endpoint que regresa un arreglo de objetos con nombre completo y puntos ordenados de los usuarios con rolId = 1
+@app.route('/tablero', methods=['GET'])
+def get_tablero():
+    # Subconsulta para obtener información de los empleados
+    subquery_empleados = db.session.query(
+        Empleado.id_empleado.label("id_empleado"),
+        Empleado.nombre.label("nombre_empleado")
+    ).filter(Empleado.rol_id == 1).subquery()
+
+    # Subconsulta para obtener la suma de puntos por empleado
+    subquery_puntos = db.session.query(
+        Reporte.id_empleado_genera.label("id_empleado"),
+        func.coalesce(func.sum(Reporte.puntos), 0).label("points")
+    ).group_by(Reporte.id_empleado_genera).subquery()
+
+    # Consulta principal que une las subconsultas con los empleados para obtener toda la información necesaria
+    tablero_info = db.session.query(
+        subquery_empleados.c.nombre_empleado,
+        subquery_puntos.c.points
+    ).join(subquery_puntos, subquery_empleados.c.id_empleado == subquery_puntos.c.id_empleado).all()
+
+    # Crear la lista de usuarios en el formato deseado
+    tablero_list = [{
+        "nombre_empleado": empleado.nombre_empleado,
+        "points": empleado.points
+    } for empleado in tablero_info]
+
+    return jsonify(tablero_list)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001, host='0.0.0.0')
