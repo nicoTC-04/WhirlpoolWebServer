@@ -4,6 +4,7 @@ from flask_uploads import UploadSet, configure_uploads, IMAGES
 from sqlalchemy import func, extract, text
 from datetime import datetime
 from werkzeug.utils import secure_filename
+from flask_cors import CORS
 import os
 import magic
 
@@ -11,6 +12,7 @@ import magic
 CONFIG
 """
 app = Flask(__name__)
+CORS(app)
 
 # config SQL
 app.config['SQLALCHEMY_DATABASE_URI'] = "mssql+pyodbc://sqlserver:5'zfx~HU`;jD\"RY}@34.82.132.197/poolpoolgo?driver=ODBC+Driver+17+for+SQL+Server"
@@ -230,7 +232,7 @@ def agregar_reporte():
 
 
 ## endpoints para detalles de reporte
-@app.route('/reporte/<int:reporte_id>', methods=['GET'])
+@app.route('/reporteDetalles/<int:reporte_id>', methods=['GET'])
 def get_reporte(reporte_id):
     # Buscar el reporte en la base de datos usando el ID proporcionado
     reporte = Reporte.query.get(reporte_id)
