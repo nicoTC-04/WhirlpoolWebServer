@@ -279,7 +279,7 @@ def get_tablero():
     # Consulta principal que une las subconsultas con los empleados para obtener toda la información necesaria
     tablero_info = db.session.query(
         subquery_empleados.c.nombre_empleado,
-        func.coalesce(subquery_puntos.c.points, 0)  # Asegurarse de tratar NULL como 0
+        func.coalesce(subquery_puntos.c.points, 0).label('points')  # Asegurarse de asignar el alias 'points'
     ).outerjoin(subquery_puntos, subquery_empleados.c.id_empleado == subquery_puntos.c.id_empleado).all()
 
     # Crear la lista de usuarios en el formato deseado
@@ -289,6 +289,7 @@ def get_tablero():
     } for empleado in tablero_info]
 
     return jsonify(tablero_list)
+
 
 
 if __name__ == '__main__':
