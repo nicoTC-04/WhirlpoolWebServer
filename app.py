@@ -52,6 +52,8 @@ class Reporte(db.Model):
     puntos = db.Column(db.Integer)
     fecha_generacion = db.Column(db.DateTime)
     id_empleado_genera = db.Column(db.Integer, db.ForeignKey('empleado.id_empleado'))
+    fecha_resolucion = db.Column(db.DateTime)
+    id_empleado_soluciona = db.Column(db.Integer, db.ForeignKey('empleado.id_empleado'))
     solucionado = db.Column(db.Boolean, default=False)
     id_ubicacion = db.Column(db.Integer, db.ForeignKey('ubicacion.id_ubicacion'))
     
@@ -116,6 +118,7 @@ def get_user_info():
         return jsonify({'message': 'Email parameter is missing'}), 400
     
 
+## endpoint que regresa todos los usuarios
 @app.route('/users', methods=['GET'])
 def get_users():
     # Subconsulta para obtener puntos y conteo de reportes por empleado
@@ -184,7 +187,7 @@ def get_reportes():
     return jsonify(reportes_list)
 
 
-### Endpoint que recibe un reporte y lo agrega a la base de datos
+## Endpoint que recibe un reporte y lo agrega a la base de datos
 @app.route('/reporte', methods=['POST'])
 def agregar_reporte():
     descripcion = request.form['descripcion']
@@ -229,8 +232,6 @@ def agregar_reporte():
     return jsonify({'mensaje': 'Reporte agregado exitosamente'}), 201
 
 
-
-
 ## endpoints para detalles de reporte
 @app.route('/reporteDetalles/<int:reporte_id>', methods=['GET'])
 def get_reporte(reporte_id):
@@ -250,6 +251,8 @@ def get_reporte(reporte_id):
     }
     return jsonify(reporte_detalle)
 
+
+## endpoint que regresa la imagen de un reporte
 @app.route('/imagen/<int:reporte_id>')
 def get_imagen_reporte(reporte_id):
     reporte = Reporte.query.get(reporte_id)
@@ -261,7 +264,8 @@ def get_imagen_reporte(reporte_id):
 
     return send_file(reporte.ruta_imagen, mimetype=content_type)
 
-# endpoint que regresa un arreglo de objetos con nombre completo y puntos ordenados de los usuarios con rolId = 1
+
+## endpoint que regresa un arreglo de objetos con nombre completo y puntos ordenados de los usuarios con rolId = 1
 @app.route('/tablero', methods=['GET'])
 def get_tablero():
     # Subconsulta para obtener información de los empleados
@@ -287,9 +291,67 @@ def get_tablero():
         "nombre_empleado": empleado.nombre_empleado,
         "points": empleado.points
     } for empleado in tablero_info]
-
+    
     return jsonify(tablero_list)
+    
+    
+## endpoint que regresa toda la informacion de todos los reportes (incluido nombre de empleado, nombre ubicacion)
+@app.route('/reportesAll', methods=['GET'])
+def get_reportes_all():
+    # Subconsulta para obtener información de los empleados y ubicaciones
+    subquery_empleados = db.session.query(
+        Empleado.id_empleado.label("id_empleado"),
+        Empleado.nombre.label("nombre_empleado")
+    ).subquery()
 
+    subquery_ubicaciones = db.session.query(
+        Ubicacion.id_ubicacion.label("id_ubicacion"),
+        Ubicacion.nombre.label("nombre_ubicacion")
+    ).subquery()
+
+    # Consulta principal que une la subconsulta con los reportes para obtener toda la información necesaria
+    reportes_info = db.session.query(
+        Reporte.id_reporte.label("id_reporte"),
+        Reporte.descripcion,
+        Reporte.fecha_generacion,
+        Reporte.solucionado,
+        subquery_empleados.c.nombre_empleado,
+        subquery_ubicaciones.c.nombre_ubicacion
+    ).join(subquery_empleados, Reporte.id_empleado_genera == subquery_empleados.c.id_empleado).join(subquery_ubicaciones, Reporte.id_ubicacion == subquery_ubicaciones.c.id_ubicacion).all()
+
+    # Crear la lista de reportes en el formato deseado
+    reportes_list = [{
+        "id_reporte": reporte.id_reporte,
+        "descripcion": reporte.descripcion,
+        "fecha_generacion": reporte.fecha_generacion.strftime("%Y-%m-%d %H:%M:%S"),
+        "solucionado": reporte.solucionado,
+        "nombre_empleado": reporte.nombre_empleado,
+        "nombre_ubicacion": reporte.nombre_ubicacion
+    } for reporte in reportes_info]
+
+    return jsonify(reportes_list)
+
+
+# endpoint que marca un reporte como solucionado, pone el id del empleado que lo soluciona y asigna los puntos
+@app.route('/reporteSolucionado', methods=['POST'])
+def reporte_solucionado():
+    reporte_id = request.headers.get('reporte_id')
+    id_empleado_soluciona = request.headers.get('id_empleado_soluciona')
+    puntos = request.headers.get('puntos')
+    
+    reporte = Reporte.query.get(reporte_id)
+    if not reporte:
+        return jsonify({'mensaje': 'Reporte no encontrado'}), 404
+
+    reporte.solucionado = True
+    reporte.fecha_resolucion = datetime.now()
+    reporte.id_empleado_soluciona = id_empleado_soluciona
+    reporte.puntos = puntos
+
+    db.session.commit()
+
+    return jsonify({'mensaje': 'Reporte marcado como solucionado'}), 200
+    
 
 
 if __name__ == '__main__':
