@@ -335,9 +335,11 @@ def get_reportes_all():
 # endpoint que marca un reporte como solucionado, pone el id del empleado que lo soluciona y asigna los puntos
 @app.route('/reporteSolucionado', methods=['POST'])
 def reporte_solucionado():
-    reporte_id = request.headers.get('reporte_id')
-    id_empleado_soluciona = request.headers.get('id_empleado_soluciona')
-    puntos = request.headers.get('puntos')
+    reporte_id = request.form['reporte_id']
+    id_empleado_soluciona = request.form['id_empleado_soluciona']
+    puntos = request.form['puntos']
+    
+    request.headers.get
     
     reporte = Reporte.query.get(reporte_id)
     if not reporte:
@@ -352,6 +354,7 @@ def reporte_solucionado():
 
     return jsonify({'mensaje': 'Reporte marcado como solucionado'}), 200
     
+
 
 
 if __name__ == '__main__':
