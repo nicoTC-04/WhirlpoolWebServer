@@ -5,6 +5,7 @@ from sqlalchemy import func, extract, text
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
+from openai import OpenAI
 import os
 import magic
 
@@ -23,6 +24,10 @@ configure_uploads(app, photos)
 
 db = SQLAlchemy(app)
 
+# config OpenAi
+client = OpenAI(api_key="sk-proj-b0Csaf8jzxqYdSlkq1i6T3BlbkFJOTZQrE49FWVdPF0UpkEO")
+
+# config endpoints
 @app.route('/')
 def hello_world():
     return 'Hello, World!'
@@ -354,9 +359,48 @@ def reporte_solucionado():
     db.session.commit()
 
     return jsonify({'mensaje': 'Reporte marcado como solucionado'}), 200
-    
+
+
+
+    """
+    Parte de OPENAI
+    """
+#endpoint que recibe la informacion de todos los reportes y se lo manda al api de openAI para hacer un resumen
+@app.route('/resumenAi', methods=['GET'])
+def generar_resumen():
+    # Obtener toda la información de todos los reportes, incluyendo ubicaciones y usuarios
+    reportes_info = get_reportes_all().json
+
+    # Crear un texto que incluya descripciones de reportes, nombres de empleados, nombres de ubicaciones, etc.
+    texto_reportes = ""
+    for reporte in reportes_info:
+        texto_reportes += f"Reporte ID: {reporte['id_reporte']}\n"
+        texto_reportes += f"Descripción: {reporte['descripcion']}\n"
+        texto_reportes += f"Fecha de generación: {reporte['fecha_generacion']}\n"
+        texto_reportes += f"Solucionado: {reporte['solucionado']}\n"
+        texto_reportes += f"Nombre de empleado: {reporte['nombre_empleado']}\n"
+        texto_reportes += f"Nombre de ubicación: {reporte['nombre_ubicacion']}\n\n"
+
+    # Enviar el texto al API de OpenAI para generar un resumen
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Vas a hacer un resumen de los reportes que se generan de productos whirlpool en las tiendas dadas que no sea mayor a un parrafo. Quiero que me des informacion acumulada de las tiendas y me digas la severidad que tu le das a los reportes. No quiero que simplementes me dictes los problemas"},
+                {"role": "user", "content": texto_reportes}
+            ]
+        )
+
+        resumen = response.choices[0].message.content
+        return jsonify({'resumen': resumen}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001, host='0.0.0.0')
+    
+    
+    
