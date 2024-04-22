@@ -16,7 +16,7 @@ app = Flask(__name__)
 CORS(app)
 
 # config SQL
-app.config['SQLALCHEMY_DATABASE_URI'] = "mssql+pyodbc://sqlserver:5'zfx~HU`;jD\"RY}@34.82.132.197/poolpoolgo?driver=ODBC+Driver+17+for+SQL+Server"
+app.config['SQLALCHEMY_DATABASE_URI'] = "mssql+pyodbc://sqlserver:(R\=qm4MK&&Ygt||@35.222.165.93/poolpoolgo?driver=ODBC+Driver+17+for+SQL+Server"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOADED_PHOTOS_DEST'] = './../imagenes'
 photos = UploadSet('photos', IMAGES)
